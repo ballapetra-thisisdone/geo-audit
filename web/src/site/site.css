@@ -40,7 +40,12 @@ main.page .grid > * { min-width: 0; }
 .header-block > div { min-width: 0; }
 
 @media (max-width: 700px) {
-  .header-block > .row { width: 100%; }
+  .header-block { flex-wrap: wrap; }
+  .header-block > div:not(.stripe) { flex: 1 1 calc(100% - 40px) !important; }
+  .header-block > .btn, .header-block > .row { margin-left: 27px; }
+  .header-block > .row { width: calc(100% - 27px); }
+  .topbar nav { overflow-x: auto; min-width: 0; }
+  .topbar { overflow: hidden; }
   .header-block .title { word-break: break-word; }
   ol.steps li { grid-template-columns: 1fr; }
   .field.inline { flex-wrap: wrap; }
