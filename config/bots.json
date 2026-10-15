@@ -1,0 +1,326 @@
+{
+  "_comment": "Robotok listája. A 'fetch: true' botokkal le is kérjük az oldalt. Az UA-sztringeket a hivatalos dokumentációból kell frissíteni (lásd sources.checked).",
+  "bots": [
+    {
+      "id": "browser",
+      "name": "Böngésző (viszonyítási alap)",
+      "owner": "—",
+      "purpose": "browser",
+      "surface": "other",
+      "token": "*",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "fetch": true,
+      "module": "core",
+      "robotsApplies": "nem dokumentált",
+      "sources": []
+    },
+    {
+      "id": "googlebot",
+      "name": "Googlebot",
+      "owner": "Google",
+      "purpose": "crawler",
+      "surface": "other",
+      "token": "Googlebot",
+      "fetch": false,
+      "module": "core",
+      "robotsApplies": "igen",
+      "note": "Google Search, Discover, Images, Video, News feltérképezése.",
+      "sources": [
+        {
+          "title": "Google common crawlers",
+          "url": "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers",
+          "checked": "2026-10-14",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "bingbot",
+      "name": "Bingbot",
+      "owner": "Microsoft",
+      "purpose": "crawler",
+      "surface": "bing",
+      "token": "bingbot",
+      "ua": "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+      "fetch": true,
+      "module": "core",
+      "robotsApplies": "igen",
+      "note": "Valódi bingbot fordított DNS-sel ellenőrizhető (*.search.msn.com).",
+      "sources": [
+        {
+          "title": "Which crawlers does Bing use?",
+          "url": "https://www.bing.com/webmasters/help/which-crawlers-does-bing-use-8c184ec0",
+          "official": true
+        },
+        {
+          "title": "How to verify Bingbot",
+          "url": "https://www.bing.com/webmasters/help/how-to-verify-bingbot-3905dc26",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "oai-searchbot",
+      "name": "OAI-SearchBot",
+      "owner": "OpenAI",
+      "purpose": "search",
+      "surface": "chatgpt",
+      "token": "OAI-SearchBot",
+      "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36; compatible; OAI-SearchBot/1.4; +https://openai.com/searchbot",
+      "fetch": true,
+      "module": "core",
+      "robotsApplies": "igen",
+      "ipList": "https://openai.com/searchbot.json",
+      "note": "ChatGPT search. A kizárt oldalak nem jelennek meg a válaszokban, legfeljebb navigációs linkként. A robots.txt-módosítás kb. 24 óra alatt hat.",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "chatgpt-user",
+      "name": "ChatGPT-User",
+      "owner": "OpenAI",
+      "purpose": "user",
+      "surface": "chatgpt",
+      "token": "ChatGPT-User",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot",
+      "fetch": true,
+      "module": "core",
+      "robotsApplies": "nem feltétlenül",
+      "ipList": "https://openai.com/chatgpt-user.json",
+      "note": "Felhasználói kérésre végzett lekérés, nem automatikus crawling. Ez olvassa a ChatGPT-be beillesztett URL-t.",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "gptbot",
+      "name": "GPTBot",
+      "owner": "OpenAI",
+      "purpose": "training",
+      "surface": "chatgpt",
+      "token": "GPTBot",
+      "ua": "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; GPTBot/1.4; +https://openai.com/gptbot",
+      "fetch": true,
+      "module": "core",
+      "robotsApplies": "igen",
+      "ipList": "https://openai.com/gptbot.json",
+      "note": "Modelltanítás. Független az OAI-SearchBottól; ha mindkettő engedélyezett, egy lekérés mindkét célra felhasználható.",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "oai-adsbot",
+      "name": "OAI-AdsBot",
+      "owner": "OpenAI",
+      "purpose": "ads",
+      "surface": "chatgpt",
+      "token": "OAI-AdsBot",
+      "fetch": false,
+      "module": "core",
+      "robotsApplies": "nem dokumentált",
+      "ipList": "https://openai.com/adsbot.json",
+      "note": "Csak a ChatGPT-hirdetésként beküldött landing oldalakat látogatja. Csak hirdetés esetén releváns.",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "claudebot",
+      "name": "ClaudeBot",
+      "owner": "Anthropic",
+      "purpose": "training",
+      "surface": "other",
+      "token": "ClaudeBot",
+      "fetch": false,
+      "module": "ext-otherbots",
+      "robotsApplies": "igen",
+      "sources": [
+        {
+          "title": "Anthropic – crawler és robots.txt",
+          "url": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler",
+          "official": true,
+          "checked": "2026-10-14"
+        }
+      ],
+      "note": "Modelltanítási célú gyűjtés. A tiltás a jövőbeli tartalom tanítóadatból való kizárását jelzi (Anthropic). Crawl-delay-t „ahol indokolt” betart."
+    },
+    {
+      "id": "claude-searchbot",
+      "name": "Claude-SearchBot",
+      "owner": "Anthropic",
+      "purpose": "search",
+      "surface": "other",
+      "token": "Claude-SearchBot",
+      "fetch": false,
+      "module": "ext-otherbots",
+      "robotsApplies": "igen",
+      "sources": [
+        {
+          "title": "Anthropic – crawler és robots.txt",
+          "url": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler",
+          "official": true,
+          "checked": "2026-10-14"
+        }
+      ],
+      "note": "Keresési minőség javítása. A tiltás az Anthropic szerint csökkentheti a láthatóságot a felhasználói keresési válaszokban."
+    },
+    {
+      "id": "claude-user",
+      "name": "Claude-User",
+      "owner": "Anthropic",
+      "purpose": "user",
+      "surface": "other",
+      "token": "Claude-User",
+      "fetch": false,
+      "module": "ext-otherbots",
+      "robotsApplies": "igen",
+      "sources": [
+        {
+          "title": "Anthropic – crawler és robots.txt",
+          "url": "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler",
+          "official": true,
+          "checked": "2026-10-14"
+        }
+      ],
+      "note": "Felhasználói kérdésre végzett lekérés. Az Anthropic szerint betartja a robots.txt-t; a tiltás csökkentheti a láthatóságot."
+    },
+    {
+      "id": "perplexitybot",
+      "name": "PerplexityBot",
+      "owner": "Perplexity",
+      "purpose": "search",
+      "surface": "other",
+      "token": "PerplexityBot",
+      "fetch": false,
+      "module": "ext-otherbots",
+      "robotsApplies": "igen",
+      "sources": [
+        {
+          "title": "Perplexity Crawlers",
+          "url": "https://docs.perplexity.ai/guides/bots",
+          "official": true,
+          "checked": "2026-10-14"
+        }
+      ],
+      "note": "A Perplexity keresési találataiban való megjelenést és linkelést szolgálja; a Perplexity szerint nem foundation-modell tanításra használják."
+    },
+    {
+      "id": "perplexity-user",
+      "name": "Perplexity-User",
+      "owner": "Perplexity",
+      "purpose": "user",
+      "surface": "other",
+      "token": "Perplexity-User",
+      "fetch": false,
+      "module": "ext-otherbots",
+      "robotsApplies": "nem feltétlenül",
+      "sources": [
+        {
+          "title": "Perplexity Crawlers",
+          "url": "https://docs.perplexity.ai/guides/bots",
+          "official": true,
+          "checked": "2026-10-14"
+        }
+      ],
+      "note": "Felhasználói kérésre végzett lekérés; a Perplexity szerint általában figyelmen kívül hagyja a robots.txt-t."
+    },
+    {
+      "id": "google-extended",
+      "name": "Google-Extended",
+      "owner": "Google",
+      "purpose": "training",
+      "surface": "other",
+      "token": "Google-Extended",
+      "fetch": false,
+      "module": "ext-otherbots",
+      "robotsApplies": "igen",
+      "sources": [
+        {
+          "title": "Google common crawlers",
+          "url": "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers",
+          "official": true,
+          "checked": "2026-10-14"
+        }
+      ],
+      "note": "Csak robots.txt-token, nincs saját UA. A Gemini-modellek tanítását és a Gemini Apps / Vertex AI groundingot szabályozza; a Google szerint nem befolyásolja a Google Search megjelenést és rangsorolást."
+    },
+    {
+      "id": "applebot-extended",
+      "name": "Applebot-Extended",
+      "owner": "Apple",
+      "purpose": "training",
+      "surface": "other",
+      "token": "Applebot-Extended",
+      "fetch": false,
+      "module": "ext-otherbots",
+      "robotsApplies": "igen",
+      "note": "Csak robots.txt-token, nincs saját lekérés.",
+      "sources": [
+        {
+          "title": "About Applebot",
+          "url": "https://support.apple.com/en-us/119829",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "ccbot",
+      "name": "CCBot (Common Crawl)",
+      "owner": "Common Crawl",
+      "purpose": "training",
+      "surface": "other",
+      "token": "CCBot",
+      "fetch": false,
+      "module": "ext-otherbots",
+      "robotsApplies": "igen",
+      "note": "Nyílt adathalmaz, amelyet sok modell tanításához használnak.",
+      "sources": [
+        {
+          "title": "CCBot",
+          "url": "https://commoncrawl.org/ccbot",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "meta-externalagent",
+      "name": "Meta-ExternalAgent",
+      "owner": "Meta",
+      "purpose": "training",
+      "surface": "other",
+      "token": "meta-externalagent",
+      "fetch": false,
+      "module": "ext-otherbots",
+      "robotsApplies": "igen",
+      "sources": [
+        {
+          "title": "Meta Web Crawlers",
+          "url": "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers",
+          "official": true
+        }
+      ]
+    }
+  ]
+}

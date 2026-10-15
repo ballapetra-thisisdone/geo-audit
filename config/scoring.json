@@ -1,0 +1,25 @@
+{
+  "_comment": "GEO Score súlyozás. Belső, dokumentált értékelési rendszer – nem univerzális AI-rangsorolási mérőszám. A súlyok szabadon módosíthatók; a nem mérhető komponens kimarad a súlyozásból (nem nulla pont).",
+  "version": "scoring/1.0.0",
+  "minMeasuredShare": 0.6,
+  "components": {
+    "technical_crawlability": { "label": "Technical Crawlability", "weight": 12 },
+    "ai_accessibility": { "label": "AI Accessibility", "weight": 8 },
+    "content_clarity": { "label": "Content Clarity", "weight": 8 },
+    "answerability": { "label": "Answerability", "weight": 10 },
+    "entity_clarity": { "label": "Entity Clarity", "weight": 8 },
+    "structured_data": { "label": "Structured Data", "weight": 7 },
+    "trust_signals": { "label": "Trust Signals", "weight": 8 },
+    "citation_potential": { "label": "Citation Potential (becslés)", "weight": 7 },
+    "topical_coverage": { "label": "Topical Coverage", "weight": 8 },
+    "internal_linking": { "label": "Internal Linking", "weight": 6 },
+    "content_freshness": { "label": "Content Freshness", "weight": 4 },
+    "query_coverage": { "label": "Query Coverage", "weight": 6 },
+    "ai_visibility": { "label": "AI Visibility (mért)", "weight": 10 }
+  },
+  "priority": {
+    "_comment": "Az issue-prioritás képlete a server/site/analyze/issues.ts prioritize() függvényében: hatás × üzleti fontosság × kiterjedés × bizonyosság × bizonyítékminőség / ráfordítás. P0 csak blokkoló, magas bizonyosságú hiba.",
+    "p1": 3,
+    "p2": 1.6
+  }
+}

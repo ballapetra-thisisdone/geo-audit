@@ -1,0 +1,46 @@
+{
+  "name": "geo-audit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GEO / AI-láthatósági auditáló eszköz (Bing/Copilot + ChatGPT)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:api": "tsx watch --clear-screen=false server/index.ts",
+    "dev:web": "vite",
+    "build": "vite build",
+    "start": "tsx server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test --test-concurrency=1 tests/unit.test.ts tests/integrations.test.ts tests/e2e.test.ts",
+    "worker": "tsx server/site/worker.ts",
+    "build:skill": "node scripts/build-skill.mjs",
+    "install:skill": "node scripts/build-skill.mjs --install"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@fastify/static": "^10.1.6",
+    "cheerio": "^1.2.0",
+    "dotenv": "^18.0.7",
+    "fastify": "^5.12.7",
+    "playwright-core": "^1.64.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "recharts": "^3.10.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

@@ -1,0 +1,1939 @@
+{
+  "_comment": "Ellenőrzés-könyvtár. Új kézi ellenőrzés kód nélkül felvehető (runner: manual). Automatikus futtatóhoz az 'impl' kulcsnak a server/checks/runners.ts-ben kell léteznie. Módosítás után a verziót emeld.",
+  "modules": [
+    {
+      "id": "core",
+      "title": "Alap (Bing + OpenAI)",
+      "description": "A prompt 1–7. pontja.",
+      "defaultOn": true
+    },
+    {
+      "id": "ext-otherbots",
+      "title": "További AI-botok",
+      "description": "ClaudeBot, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User, Google-Extended, Applebot-Extended, CCBot, Meta-ExternalAgent a robots.txt-ben.",
+      "defaultOn": true
+    },
+    {
+      "id": "ext-consent",
+      "title": "Cookie-fal / consent",
+      "description": "Consent-platform felismerése, és hogy kitakarja-e a tartalmat.",
+      "defaultOn": true
+    },
+    {
+      "id": "ext-perf",
+      "title": "Bot-válaszidő és HTML-méret",
+      "description": "TTFB botonként, HTML-méret, kulcstartalom az első 100 KB-ban, tömörítés.",
+      "defaultOn": true
+    },
+    {
+      "id": "ext-entity",
+      "title": "Entitás és bizalom",
+      "description": "NAP-egyezés, sameAs, impresszum, kapcsolat, rólunk.",
+      "defaultOn": true
+    },
+    {
+      "id": "ext-freshness",
+      "title": "Frissesség",
+      "description": "Látható frissítési dátum, dateModified és sitemap lastmod összhangja.",
+      "defaultOn": true
+    },
+    {
+      "id": "ext-structure",
+      "title": "Kulcsadat-szerkezet",
+      "description": "Kulcsadatok táblázatban vagy definíciós listában.",
+      "defaultOn": true
+    },
+    {
+      "id": "ext-pdf",
+      "title": "PDF-leltár",
+      "description": "Linkelt PDF-ek dátuma, verziói, ellentmondó források gyanúja.",
+      "defaultOn": true
+    },
+    {
+      "id": "ext-logs",
+      "title": "Szervernapló",
+      "description": "Bot-kérések a szervernaplóból (kézi, a 3. fázisban automatikus).",
+      "defaultOn": true
+    },
+    {
+      "id": "ext-llmstxt",
+      "title": "llms.txt (kísérleti)",
+      "description": "Csak jelenlét. Nincs dokumentált hatása, nem javasoljuk aktívan.",
+      "defaultOn": true
+    }
+  ],
+  "checks": [
+    {
+      "id": "crawl.saved-html",
+      "version": 1,
+      "title": "A mentett HTML ellenőrzése",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "savedHtml",
+      "module": "core",
+      "enabled": true,
+      "description": "Valóban renderelt DOM-e, a megnevezett oldal-e, és nem bejelentkezett felhasználó mentette-e (pl. CMS admin sáv).",
+      "sources": []
+    },
+    {
+      "id": "crawl.status",
+      "version": 1,
+      "title": "HTTP-státusz és átirányítások",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 5,
+      "runner": "auto",
+      "impl": "httpStatus",
+      "module": "core",
+      "enabled": true,
+      "description": "Minden bot UA 200-as választ kap-e, és milyen hosszú az átirányítási lánc. Jelszavas védelem, belépőoldal.",
+      "sources": [
+        {
+          "title": "Bing Webmaster Guidelines",
+          "url": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Az oldal nem ad 200-as választ minden robotnak",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "header / szerver",
+        "change": "Az átirányítási láncot rövidítsd egy lépésre, és a végső URL adjon 200-at minden UA-nak.",
+        "benefit": "Az oldal egyáltalán bekerülhet az indexbe és a válaszokba.",
+        "priority": "kritikus",
+        "effort": "S",
+        "effortReason": "Szerver- vagy CMS-beállítás.",
+        "verification": "curl -sIL -A '<UA>' URL minden bot UA-val: egy 301 legfeljebb, utána 200."
+      }
+    },
+    {
+      "id": "crawl.ua-parity",
+      "version": 1,
+      "title": "Azonos tartalom minden robotnak",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 5,
+      "runner": "auto",
+      "impl": "uaParity",
+      "module": "core",
+      "enabled": true,
+      "description": "A bot UA-k ugyanazt a státuszt, címet és nagyjából ugyanakkora HTML-t kapják-e, mint a böngésző. Challenge-oldal (WAF) felismerése. Az UA-hamisítás nem helyettesíti a valódi robot-IP-ről érkező kérést.",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Robotok eltérő vagy blokkolt választ kapnak",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "WAF / CDN / szerver",
+        "change": "A WAF/botvédelem engedje a dokumentált robotokat (OpenAI IP-JSON-ok, bingbot fordított DNS), és ne adjon challenge-oldalt.",
+        "benefit": "A robotok a valódi tartalmat látják.",
+        "priority": "kritikus",
+        "effort": "M",
+        "effortReason": "WAF-szabályok és tesztelés valódi bot-IP-kkel.",
+        "verification": "Szervernaplóban a bot-kérések 200-as státusza; Bing Webmaster Tools URL Inspection."
+      }
+    },
+    {
+      "id": "crawl.title",
+      "version": 1,
+      "title": "Title",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "title",
+      "module": "core",
+      "enabled": true,
+      "description": "Van-e egyedi, leíró title, megfelelő hosszal, és egyezik-e a nyers és a renderelt változat.",
+      "sources": [
+        {
+          "title": "Bing Webmaster Guidelines",
+          "url": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Title javítása",
+        "category": "SEO/indexelés",
+        "owner": "mindkettő",
+        "implementation": "HTML / CMS",
+        "change": "Egyedi, a fő entitást és a szervezetet megnevező title (kb. 30–65 karakter), szerveroldalon renderelve.",
+        "benefit": "Pontosabb találati cím és forrásmegnevezés.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Sablon- vagy SEO-mező módosítás.",
+        "verification": "Nyers HTML <title> ellenőrzése bot UA-val."
+      }
+    },
+    {
+      "id": "crawl.meta-description",
+      "version": 1,
+      "title": "Meta description",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "metaDescription",
+      "module": "core",
+      "enabled": true,
+      "description": "Van-e meta description, és tényszerűen összefoglalja-e az oldalt.",
+      "sources": [
+        {
+          "title": "Bing Webmaster Guidelines",
+          "url": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Meta description megírása",
+        "category": "SEO/indexelés",
+        "owner": "ügyfél",
+        "implementation": "CMS",
+        "change": "Tényszerű, 70–160 karakteres leírás a kulcsadatokkal (mi, hol, mennyiért, kinek).",
+        "benefit": "Jobb találati kivonat.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Szövegírás.",
+        "verification": "Nyers HTML meta description."
+      }
+    },
+    {
+      "id": "crawl.canonical",
+      "version": 1,
+      "title": "Canonical",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 4,
+      "runner": "auto",
+      "impl": "canonical",
+      "module": "core",
+      "enabled": true,
+      "description": "Pontosan egy abszolút canonical, amely önmagára vagy szándékosan máshová mutat; egyezik-e a nyers és a renderelt változat.",
+      "sources": [
+        {
+          "title": "Bing Webmaster Guidelines",
+          "url": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Canonical rendbetétele",
+        "category": "SEO/indexelés",
+        "owner": "fejlesztő",
+        "implementation": "HTML / CMS",
+        "change": "Egyetlen, abszolút, szerveroldalon kiírt canonical a preferált URL-re.",
+        "benefit": "Nincs duplikátum, az indexelő a megfelelő URL-t választja.",
+        "priority": "magas",
+        "effort": "S",
+        "effortReason": "Sablonmódosítás.",
+        "verification": "Nyers HTML: pontosan egy rel=canonical."
+      }
+    },
+    {
+      "id": "crawl.robots-meta",
+      "version": 1,
+      "title": "Robots meta és X-Robots-Tag",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 5,
+      "runner": "auto",
+      "impl": "robotsMeta",
+      "module": "core",
+      "enabled": true,
+      "description": "noindex, nofollow, none, nocache, noarchive a meta tagben és a HTTP fejlécben, bot-specifikus metákkal együtt.",
+      "sources": [
+        {
+          "title": "OpenAI Publishers and Developers FAQ",
+          "url": "https://help.openai.com/en/articles/12627856-publishers-and-developers-faq",
+          "official": true
+        },
+        {
+          "title": "Bing – robots meta tags",
+          "url": "https://www.bing.com/webmasters/help/which-robots-metatags-does-bing-support-5198d240",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Nem szándékos indexelési tiltás feloldása",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "HTML / header / CMS",
+        "change": "A noindex/none eltávolítása az indexelendő oldalról (meta és X-Robots-Tag).",
+        "benefit": "Az oldal indexelhetővé és idézhetővé válik.",
+        "priority": "kritikus",
+        "effort": "S",
+        "effortReason": "Beállítás.",
+        "verification": "curl -sI URL | grep -i x-robots; nyers HTML meta robots."
+      }
+    },
+    {
+      "id": "crawl.robots-txt",
+      "version": 1,
+      "title": "robots.txt",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "robotsTxt",
+      "module": "core",
+      "enabled": true,
+      "description": "Elérhető-e (200), értelmezhető-e, és hivatkozik-e sitemapre.",
+      "sources": [
+        {
+          "title": "Bing – robots.txt",
+          "url": "https://www.bing.com/webmasters/help/how-to-create-a-robots-txt-file-cb7c31ec",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "robots.txt rendbetétele",
+        "category": "SEO/indexelés",
+        "owner": "fejlesztő",
+        "implementation": "robots",
+        "change": "200-as robots.txt Sitemap: sorral és tudatos, botonkénti szabályokkal.",
+        "benefit": "Egyértelmű crawl-szabályok.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Egy fájl.",
+        "verification": "curl URL/robots.txt"
+      }
+    },
+    {
+      "id": "crawl.sitemap",
+      "version": 1,
+      "title": "XML sitemap és lastmod",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "sitemap",
+      "module": "core",
+      "enabled": true,
+      "description": "Van-e sitemap, benne van-e az oldal, és hihető-e a lastmod (nem minden URL-en ugyanaz a mai dátum).",
+      "sources": [
+        {
+          "title": "Bing – Sitemaps",
+          "url": "https://www.bing.com/webmasters/help/sitemaps-3b5cf6ed",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Sitemap kiegészítése, valós lastmod",
+        "category": "SEO/indexelés",
+        "owner": "fejlesztő",
+        "implementation": "CMS / PHP",
+        "change": "Az oldal (és a tételenkénti aloldalak) szerepeljenek a sitemapben, a lastmod a tartalom tényleges változásakor frissüljön.",
+        "benefit": "Gyorsabb, pontosabb újrafeltérképezés.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Plugin- vagy generátorbeállítás.",
+        "verification": "Sitemap letöltése, URL és lastmod keresése; Bing Webmaster Tools Sitemaps."
+      }
+    },
+    {
+      "id": "crawl.soft404",
+      "version": 1,
+      "title": "Soft 404",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "soft404",
+      "module": "core",
+      "enabled": true,
+      "description": "Egy nem létező URL valódi 404/410-et ad-e, vagy 200-at (soft 404).",
+      "sources": [
+        {
+          "title": "Bing Webmaster Guidelines",
+          "url": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Soft 404 megszüntetése",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "PHP / szerver",
+        "change": "Nem létező URL-ekre (és nem létező tétel-azonosítókra) 404 vagy 410 státusz.",
+        "benefit": "Nem kerülnek üres oldalak az indexbe.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Routing-módosítás.",
+        "verification": "curl -sI URL/nem-letezo-oldal → 404"
+      }
+    },
+    {
+      "id": "crawl.url-params",
+      "version": 1,
+      "title": "Paraméteres és duplikált URL-ek",
+      "topic": "crawl",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "urlParams",
+      "module": "core",
+      "enabled": true,
+      "description": "Paraméteres URL-ek (szűrők, követőkódok) a belső linkekben és a vizsgált URL-ben.",
+      "sources": [
+        {
+          "title": "Bing Webmaster Guidelines",
+          "url": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Paraméteres URL-ek kezelése",
+        "category": "SEO/indexelés",
+        "owner": "fejlesztő",
+        "implementation": "HTML / CMS",
+        "change": "A szűrő-URL-eken canonical a fő URL-re, belső linkek paraméter nélkül.",
+        "benefit": "Kevesebb duplikátum, fókuszáltabb crawl.",
+        "priority": "alacsony",
+        "effort": "M",
+        "effortReason": "Szűrőlogika érintett.",
+        "verification": "Belső linkek listája paraméter nélkül."
+      }
+    },
+    {
+      "id": "crawl.indexnow",
+      "version": 1,
+      "title": "IndexNow",
+      "topic": "crawl",
+      "surfaces": [
+        "bing"
+      ],
+      "weight": 2,
+      "runner": "manual",
+      "module": "core",
+      "enabled": true,
+      "description": "Van-e IndexNow-integráció. Gyakran változó adatnál (ár, elérhetőség, időpont) kifejezetten hasznos.",
+      "howTo": "Kérdezd meg a fejlesztőt vagy nézd meg a CMS-bővítményeket (pl. IndexNow plugin, Yoast/Rank Math IndexNow), illetve a Bing Webmaster Tools IndexNow riportját. Kívülről a kulcsfájl neve nem kitalálható.",
+      "sources": [
+        {
+          "title": "IndexNow – Bing",
+          "url": "https://www.bing.com/indexnow/getstarted",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "IndexNow bevezetése",
+        "category": "SEO/indexelés",
+        "owner": "fejlesztő",
+        "implementation": "PHP / CMS",
+        "change": "IndexNow-kulcs elhelyezése, és tartalomváltozáskor (ár, elérhetőség, dátum) automatikus ping.",
+        "benefit": "A változások órákon belül eljuthatnak a Bing-indexbe.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Plugin vagy egy HTTP-hívás mentéskor.",
+        "verification": "Bing Webmaster Tools → IndexNow riport."
+      }
+    },
+    {
+      "id": "crawl.bwt",
+      "version": 1,
+      "title": "Bing Webmaster Tools",
+      "topic": "crawl",
+      "surfaces": [
+        "bing"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "bwt",
+      "module": "core",
+      "enabled": true,
+      "description": "Látható-e Bing Webmaster Tools-ellenőrzés (msvalidate.01 meta vagy BingSiteAuth.xml). DNS- vagy GSC-importos ellenőrzés kívülről nem látszik.",
+      "sources": [
+        {
+          "title": "Bing Webmaster Tools – site verification",
+          "url": "https://www.bing.com/webmasters/help/add-and-verify-site-12184f8b",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Bing Webmaster Tools beállítása és figyelése",
+        "category": "SEO/indexelés",
+        "owner": "mindkettő",
+        "implementation": "CMS / DNS",
+        "change": "Webhely ellenőrzése, sitemap beküldése, IndexNow, crawl-hibák és AI Performance riport figyelése.",
+        "benefit": "Közvetlen rálátás a Bing-indexelésre és a Copilot-idézésekre.",
+        "priority": "magas",
+        "effort": "S",
+        "effortReason": "Egyszeri beállítás.",
+        "verification": "BWT-fiókban a webhely ellenőrzött."
+      }
+    },
+    {
+      "id": "bots.robots-bingbot",
+      "version": 1,
+      "title": "Bingbot a robots.txt-ben",
+      "topic": "bots",
+      "surfaces": [
+        "bing"
+      ],
+      "weight": 5,
+      "runner": "auto",
+      "impl": "robotsBingbot",
+      "module": "core",
+      "enabled": true,
+      "description": "Engedi-e a robots.txt a bingbotot a vizsgált útvonalon.",
+      "sources": [
+        {
+          "title": "Bing – robots.txt",
+          "url": "https://www.bing.com/webmasters/help/how-to-create-a-robots-txt-file-cb7c31ec",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Bingbot engedélyezése",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "robots",
+        "change": "A bingbot (vagy *) Disallow szabályának feloldása a fő oldalakra.",
+        "benefit": "Bing- és Copilot-láthatóság.",
+        "priority": "kritikus",
+        "effort": "S",
+        "effortReason": "Egy fájl.",
+        "verification": "robots.txt tesztelő a Bing Webmaster Toolsban."
+      }
+    },
+    {
+      "id": "bots.robots-oai-searchbot",
+      "version": 1,
+      "title": "OAI-SearchBot a robots.txt-ben",
+      "topic": "bots",
+      "surfaces": [
+        "chatgpt"
+      ],
+      "weight": 5,
+      "runner": "auto",
+      "impl": "robotsOaiSearch",
+      "module": "core",
+      "enabled": true,
+      "description": "Engedi-e a robots.txt az OAI-SearchBotot. Az OpenAI szerint a kizárt oldalak nem jelennek meg a ChatGPT search válaszaiban, legfeljebb navigációs linkként. A módosítás kb. 24 óra alatt hat.",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        },
+        {
+          "title": "OpenAI Publishers and Developers FAQ",
+          "url": "https://help.openai.com/en/articles/12627856-publishers-and-developers-faq",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "OAI-SearchBot engedélyezése",
+        "category": "AI-láthatóság",
+        "owner": "fejlesztő",
+        "implementation": "robots",
+        "change": "User-agent: OAI-SearchBot / Allow: / (a GPTBot döntésétől függetlenül).",
+        "benefit": "Az oldal forrásként megjelenhet a ChatGPT search válaszaiban.",
+        "priority": "kritikus",
+        "effort": "S",
+        "effortReason": "Egy fájl.",
+        "verification": "robots.txt; szervernaplóban OAI-SearchBot kérések 24–48 órán belül."
+      }
+    },
+    {
+      "id": "bots.robots-gptbot",
+      "version": 1,
+      "title": "GPTBot (modelltanítás) a robots.txt-ben",
+      "topic": "bots",
+      "surfaces": [
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "robotsGptbot",
+      "module": "core",
+      "enabled": true,
+      "description": "Üzleti döntés, nem hiba: engedi-e a robots.txt a GPTBotot. Független az OAI-SearchBottól, de ha mindkettő engedélyezett, az OpenAI egy lekérést mindkét célra használhat.",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "bots.chatgpt-user",
+      "version": 1,
+      "title": "ChatGPT-User: mit lát a beillesztett URL-ből",
+      "topic": "bots",
+      "surfaces": [
+        "chatgpt"
+      ],
+      "weight": 5,
+      "runner": "auto",
+      "impl": "chatgptUser",
+      "module": "core",
+      "enabled": true,
+      "description": "A ChatGPT-User UA státusza és tartalma JS nélkül: kiolvashatók-e a kulcsadatok, nincs-e cookie-fal vagy challenge. A robots.txt erre gyakran nem vonatkozik.",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "Kulcsadatok JS nélkül is a HTML-ben",
+        "category": "AI-láthatóság",
+        "owner": "fejlesztő",
+        "implementation": "HTML / PHP (SSR)",
+        "change": "A kulcsadatokat (ár, dátum, helyszín, elérhetőség) szerveroldalon renderelt HTML-ben kell kiírni.",
+        "benefit": "A ChatGPT-be beillesztett URL-ből a modell pontos adatot olvas ki.",
+        "priority": "magas",
+        "effort": "M",
+        "effortReason": "Sablon vagy SSR átalakítás.",
+        "verification": "curl -A 'ChatGPT-User' URL | grep '<kulcsadat>'"
+      }
+    },
+    {
+      "id": "bots.noindex-conflict",
+      "version": 1,
+      "title": "robots.txt-tiltás + noindex ellentmondás",
+      "topic": "bots",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "noindexConflict",
+      "module": "core",
+      "enabled": true,
+      "description": "Ha a robots.txt tiltja a robotot, a noindexet nem tudja lekérni, így az oldal címmel és linkkel még megjelenhet (pl. ChatGPT Atlasban).",
+      "sources": [
+        {
+          "title": "OpenAI Publishers and Developers FAQ",
+          "url": "https://help.openai.com/en/articles/12627856-publishers-and-developers-faq",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "robots.txt-tiltás és noindex ellentmondásának feloldása",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "robots / HTML",
+        "change": "Ha az oldalnak ki kell maradnia: robots.txt engedje, a noindex végezze a kizárást. Ha bent kell lennie: a noindexet töröld.",
+        "benefit": "Kiszámítható megjelenés.",
+        "priority": "magas",
+        "effort": "S",
+        "effortReason": "Beállítás.",
+        "verification": "robots.txt + nyers HTML robots meta együtt."
+      }
+    },
+    {
+      "id": "bots.nocache",
+      "version": 1,
+      "title": "nocache / noarchive hatása a Copilotra",
+      "topic": "bots",
+      "surfaces": [
+        "bing"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "nocache",
+      "module": "core",
+      "enabled": true,
+      "description": "A Microsoft szerint a nocache-sel jelölt tartalomból a Copilot csak URL-t, címet és kivonatot használ; a noarchive-val jelölt nem jelenik meg a válaszokban.",
+      "sources": [
+        {
+          "title": "Bing blog – new options to control usage of content in Bing Chat (2023-09)",
+          "url": "https://blogs.bing.com/webmaster/september-2023/Announcing-new-options-for-webmasters-to-control-usage-of-their-content-in-Bing-Chat",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "nocache/noarchive felülvizsgálata",
+        "category": "AI-láthatóság",
+        "owner": "mindkettő",
+        "implementation": "HTML / header",
+        "change": "Ha a cél a Copilot-idézhetőség, a nocache/noarchive eltávolítása (üzleti döntés).",
+        "benefit": "A Copilot a teljes tartalomra építhet.",
+        "priority": "magas",
+        "effort": "S",
+        "effortReason": "Beállítás.",
+        "verification": "Nyers HTML meta robots / X-Robots-Tag."
+      }
+    },
+    {
+      "id": "bots.waf",
+      "version": 1,
+      "title": "CDN / WAF / botvédelem",
+      "topic": "bots",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 4,
+      "runner": "auto",
+      "impl": "waf",
+      "module": "core",
+      "enabled": true,
+      "description": "CDN/WAF felismerése a fejlécekből (Cloudflare, Akamai, Sucuri, Imperva, CloudFront stb.) és challenge-oldalak. Ha a WAF IP alapján szűr, az OpenAI IP-JSON-jait és a bingbotot engedélyezőlistára kell venni.",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers (IP JSON-ok)",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        },
+        {
+          "title": "How to verify Bingbot",
+          "url": "https://www.bing.com/webmasters/help/how-to-verify-bingbot-3905dc26",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "WAF-engedélyezőlista a dokumentált robotokra",
+        "category": "AI-láthatóság",
+        "owner": "fejlesztő",
+        "implementation": "WAF",
+        "change": "searchbot.json, chatgpt-user.json (és döntéstől függően gptbot.json) IP-tartományainak engedélyezése, bingbot fordított DNS-alapú engedélyezése; az AI-bot-blokkoló alapbeállítás felülvizsgálata.",
+        "benefit": "A valódi robot-IP-k nem kapnak 403-at vagy challenge-et.",
+        "priority": "magas",
+        "effort": "M",
+        "effortReason": "WAF-szabály + időszakos IP-lista frissítés.",
+        "verification": "Szervernapló: a botok kérései 200-asak; WAF-esemény napló."
+      }
+    },
+    {
+      "id": "bots.other-ai",
+      "version": 1,
+      "title": "További AI-botok a robots.txt-ben",
+      "topic": "bots",
+      "surfaces": [
+        "other"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "otherAi",
+      "module": "ext-otherbots",
+      "enabled": true,
+      "description": "Keresési/válaszadó és tanító célú botok szétválasztva. Üzleti kompromisszum, nem automatikus engedélyezési javaslat.",
+      "sources": []
+    },
+    {
+      "id": "bots.consent",
+      "version": 1,
+      "title": "Cookie-fal és consent-réteg",
+      "topic": "bots",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "consent",
+      "module": "ext-consent",
+      "enabled": true,
+      "description": "Felismert consent-platform, és a fő tartalom benne van-e a nyers HTML-ben a consent-réteg mellett.",
+      "sources": [],
+      "backlog": {
+        "title": "A consent-réteg ne takarja a tartalmat",
+        "category": "AI-láthatóság",
+        "owner": "fejlesztő",
+        "implementation": "HTML / JS",
+        "change": "A tartalom a DOM-ban legyen a consent elfogadása nélkül is; a réteg csak overlay legyen.",
+        "benefit": "A robotok és a ChatGPT-User a teljes tartalmat olvassák.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Consent-beállítás.",
+        "verification": "Nyers HTML-ben a fő szöveg."
+      }
+    },
+    {
+      "id": "bots.perf",
+      "version": 1,
+      "title": "Válaszidő és HTML-méret botonként",
+      "topic": "bots",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "botPerf",
+      "module": "ext-perf",
+      "enabled": true,
+      "description": "TTFB és HTML-méret botonként; a kulcsadatok benne vannak-e a HTML első 100 KB-jában.",
+      "sources": [],
+      "backlog": {
+        "title": "Kisebb HTML, kulcsadat elöl",
+        "category": "AI-láthatóság",
+        "owner": "fejlesztő",
+        "implementation": "HTML / PHP",
+        "change": "Inline szkriptek/stílusok kiszervezése, a kulcsadatblokk a HTML elejéhez közel.",
+        "benefit": "A csonkoló lekérők is látják a lényeget.",
+        "priority": "alacsony",
+        "effort": "M",
+        "effortReason": "Sablon-átszervezés.",
+        "verification": "HTML-méret és a kulcsadat pozíciója a nyers válaszban."
+      }
+    },
+    {
+      "id": "html.h1",
+      "version": 1,
+      "title": "Pontosan egy H1",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "h1",
+      "module": "core",
+      "enabled": true,
+      "description": "A nyers és a renderelt HTML-ben pontosan egy, a fő entitást megnevező H1 van-e.",
+      "sources": [],
+      "backlog": {
+        "title": "H1 rendbetétele",
+        "category": "Tartalom/IA",
+        "owner": "fejlesztő",
+        "implementation": "HTML",
+        "change": "Egy H1 a fő entitás nevével; a logó és a dekoratív címek ne legyenek H1.",
+        "benefit": "Egyértelmű fő téma.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Sablonmódosítás.",
+        "verification": "document.querySelectorAll('h1').length === 1"
+      }
+    },
+    {
+      "id": "html.headings",
+      "version": 1,
+      "title": "Heading-hierarchia",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "headingOrder",
+      "module": "core",
+      "enabled": true,
+      "description": "Kihagyott szintek (pl. H2 → H4), üres címsorok.",
+      "sources": [],
+      "backlog": {
+        "title": "Címsor-hierarchia javítása",
+        "category": "Tartalom/IA",
+        "owner": "fejlesztő",
+        "implementation": "HTML",
+        "change": "Folytonos H2/H3 szerkezet; vizuális stílus CSS-ből, ne címsorszintből.",
+        "benefit": "Könnyebben szakaszolható, idézhető tartalom.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Sablonmódosítás.",
+        "verification": "Címsor-vázlat."
+      }
+    },
+    {
+      "id": "html.semantic",
+      "version": 1,
+      "title": "Szemantikus elemek",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "semantic",
+      "module": "core",
+      "enabled": true,
+      "description": "main, header, nav, footer, article jelenléte.",
+      "sources": [],
+      "backlog": {
+        "title": "Szemantikus landmarkok",
+        "category": "Tartalom/IA",
+        "owner": "fejlesztő",
+        "implementation": "HTML",
+        "change": "<main> a fő tartalom körül, <header>/<nav>/<footer> a keret körül.",
+        "benefit": "A fő tartalom gépileg elválik a navigációtól.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Sablonmódosítás.",
+        "verification": "document.querySelector('main')"
+      }
+    },
+    {
+      "id": "html.img-alt",
+      "version": 1,
+      "title": "Alt szövegek",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "imgAlt",
+      "module": "core",
+      "enabled": true,
+      "description": "Képek alt nélkül vagy üres alttal (a dekoratív képeknél az üres alt helyes).",
+      "sources": [],
+      "backlog": {
+        "title": "Tartalmi képek alt szövege",
+        "category": "Tartalom/IA",
+        "owner": "ügyfél",
+        "implementation": "CMS",
+        "change": "Leíró alt a tartalmi képeken; ha a kép információt hordoz (ár, alaprajz), az szövegként is legyen kint.",
+        "benefit": "A képben lévő információ gépileg is elérhető.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Tartalomfeltöltés.",
+        "verification": "Képek alt nélkül: 0."
+      }
+    },
+    {
+      "id": "html.anchors",
+      "version": 1,
+      "title": "Belső linkek és horgonyszövegek",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "anchors",
+      "module": "core",
+      "enabled": true,
+      "description": "Üres vagy általános horgonyszövegek (tovább, részletek, kattints ide).",
+      "sources": [],
+      "backlog": {
+        "title": "Leíró horgonyszövegek",
+        "category": "Tartalom/IA",
+        "owner": "mindkettő",
+        "implementation": "HTML / CMS",
+        "change": "A „Tovább” helyett a cél megnevezése (pl. „A 3 szobás lakások árai”).",
+        "benefit": "Jobb belső kontextus.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Szöveg.",
+        "verification": "Általános horgonyok száma."
+      }
+    },
+    {
+      "id": "html.locked-content",
+      "version": 1,
+      "title": "Képbe, PDF-be, iframe-be zárt információ",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "lockedContent",
+      "module": "core",
+      "enabled": true,
+      "description": "iframe, térkép-widget, videó, slider és PDF jelenléte: az ott lévő információ szövegként is elérhető-e.",
+      "sources": [],
+      "backlog": {
+        "title": "Bezárt információ szövegként is",
+        "category": "Tartalom/IA",
+        "owner": "mindkettő",
+        "implementation": "HTML / CMS",
+        "change": "A térképen, PDF-ben, sliderben, képen lévő kulcsinformáció (cím, ár, feltétel) HTML-szövegként is.",
+        "benefit": "Kiolvasható és idézhető adat.",
+        "priority": "magas",
+        "effort": "M",
+        "effortReason": "Tartalom + sablon.",
+        "verification": "A kulcsadatok szövegként a nyers HTML-ben."
+      }
+    },
+    {
+      "id": "html.js-dependency",
+      "version": 1,
+      "title": "JS-függőség: nyers vs. renderelt",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 5,
+      "runner": "auto",
+      "impl": "jsDependency",
+      "module": "core",
+      "enabled": true,
+      "description": "Mennyi szöveg és szerkezet jelenik meg csak a JavaScript lefutása után.",
+      "sources": [],
+      "backlog": {
+        "title": "Szerveroldali renderelés a kulcstartalomra",
+        "category": "AI-láthatóság",
+        "owner": "fejlesztő",
+        "implementation": "PHP / SSR",
+        "change": "A JS-sel betöltött listák, árak, elérhetőség szerveroldalon is kiírva (SSR vagy előrenderelés).",
+        "benefit": "Minden robot ugyanazt a tartalmat látja.",
+        "priority": "magas",
+        "effort": "L",
+        "effortReason": "Architekturális változás lehet.",
+        "verification": "Nyers és renderelt szöveg aránya > 80%."
+      }
+    },
+    {
+      "id": "html.keydata",
+      "version": 1,
+      "title": "Kulcsadat-mátrix",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 5,
+      "runner": "auto",
+      "impl": "keyData",
+      "module": "core",
+      "enabled": true,
+      "description": "A bemenetben megadott kulcsadatok hol érhetők el: nyers HTML, renderelt DOM, JSON-LD, csak alt/képen, vagy sehol.",
+      "sources": [],
+      "backlog": {
+        "title": "Kulcsadatok gépileg olvasható formában",
+        "category": "AI-láthatóság",
+        "owner": "mindkettő",
+        "implementation": "HTML / JSON-LD",
+        "change": "Minden kulcsadat szövegként a nyers HTML-ben, és ahol van rá séma, JSON-LD-ben is.",
+        "benefit": "Pontos, idézhető tények.",
+        "priority": "magas",
+        "effort": "M",
+        "effortReason": "Sablon + tartalom.",
+        "verification": "Kulcsadat-mátrix csupa zöld."
+      }
+    },
+    {
+      "id": "html.structure",
+      "version": 1,
+      "title": "Kulcsadatok szerkezete (táblázat, dl)",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "keyStructure",
+      "module": "ext-structure",
+      "enabled": true,
+      "description": "Van-e táblázat vagy definíciós lista, amely gépileg párosítja a címkét és az értéket.",
+      "sources": [],
+      "backlog": {
+        "title": "Kulcsadat-összefoglaló tábla",
+        "category": "Tartalom/IA",
+        "owner": "mindkettő",
+        "implementation": "HTML",
+        "change": "<table> vagy <dl> a kulcsadatokkal, „frissítve: dátum” jelöléssel.",
+        "benefit": "Egy blokkból kiemelhető tények.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Egy komponens.",
+        "verification": "A blokk megléte a nyers HTML-ben."
+      }
+    },
+    {
+      "id": "html.pdf",
+      "version": 1,
+      "title": "PDF-leltár",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "pdfInventory",
+      "module": "ext-pdf",
+      "enabled": true,
+      "description": "Linkelt PDF-ek dátuma és mérete; több hasonló nevű PDF ellentmondó forrás gyanúja.",
+      "sources": [],
+      "backlog": {
+        "title": "PDF-ek rendbetétele",
+        "category": "Tartalom/IA",
+        "owner": "ügyfél",
+        "implementation": "CMS",
+        "change": "Elavult PDF-ek eltávolítása vagy átirányítása; a kulcsinformáció HTML-ben is.",
+        "benefit": "Nem idéz elavult adatot a ChatGPT/Copilot.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Tartalomkezelés.",
+        "verification": "Egy aktuális PDF dokumentumtípusonként."
+      }
+    },
+    {
+      "id": "html.conflicts",
+      "version": 1,
+      "title": "Ellentmondó források",
+      "topic": "html",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "manual",
+      "module": "core",
+      "enabled": true,
+      "description": "Ugyanarról a tényről több eltérő változat (két dátumú PDF, eltérő számok különböző oldalakon).",
+      "howTo": "Keress rá a kulcsadatokra a site:domain kereséssel a Bingben, és vesd össze az aloldalakat és PDF-eket.",
+      "sources": [],
+      "backlog": {
+        "title": "Ellentmondó adatok egységesítése",
+        "category": "Tartalom/IA",
+        "owner": "ügyfél",
+        "implementation": "CMS",
+        "change": "Egy hiteles forrásoldal a kulcsadatokra, a többi erre hivatkozzon.",
+        "benefit": "Az AI-válaszok nem keverik a változatokat.",
+        "priority": "magas",
+        "effort": "M",
+        "effortReason": "Tartalomaudit.",
+        "verification": "Kézi összevetés."
+      }
+    },
+    {
+      "id": "schema.inventory",
+      "version": 1,
+      "title": "JSON-LD leltár",
+      "topic": "schema",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "jsonldInventory",
+      "module": "core",
+      "enabled": true,
+      "description": "Milyen séma van, parse-hibák, duplikált típusok, microdata/RDFa.",
+      "sources": [
+        {
+          "title": "Bing – structured data",
+          "url": "https://www.bing.com/webmasters/help/marking-up-your-site-with-structured-data-3a93e731",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "JSON-LD hibák javítása",
+        "category": "Strukturált adat",
+        "owner": "fejlesztő",
+        "implementation": "JSON-LD",
+        "change": "Érvényes JSON, egy @graph, duplikátumok összevonása.",
+        "benefit": "Értelmezhető entitásadatok.",
+        "priority": "magas",
+        "effort": "S",
+        "effortReason": "Sablon.",
+        "verification": "validator.schema.org"
+      }
+    },
+    {
+      "id": "schema.organization",
+      "version": 1,
+      "title": "Organization entitás",
+      "topic": "schema",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 4,
+      "runner": "auto",
+      "impl": "organization",
+      "module": "core",
+      "enabled": true,
+      "description": "Van-e Organization (vagy altípus) @id-vel, name, url, logo, sameAs mezőkkel.",
+      "sources": [
+        {
+          "title": "schema.org/Organization",
+          "url": "https://schema.org/Organization"
+        }
+      ],
+      "backlog": {
+        "title": "Organization séma @id-vel",
+        "category": "Strukturált adat",
+        "owner": "fejlesztő",
+        "implementation": "JSON-LD",
+        "change": "Organization node állandó @id-vel (pl. https://domain/#org), name, url, logo, sameAs, contactPoint.",
+        "benefit": "Egyértelmű, ki áll az oldal mögött.",
+        "priority": "magas",
+        "effort": "S",
+        "effortReason": "Egy globális blokk.",
+        "verification": "validator.schema.org"
+      }
+    },
+    {
+      "id": "schema.main-entity",
+      "version": 1,
+      "title": "Fő entitás sémája",
+      "topic": "schema",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 4,
+      "runner": "auto",
+      "impl": "mainEntity",
+      "module": "core",
+      "enabled": true,
+      "description": "A fő entitás típusához illő séma (Event, Product, Service, Place, Residence, Course, LocalBusiness…), az Organizationhöz @id-vel kötve.",
+      "sources": [
+        {
+          "title": "schema.org",
+          "url": "https://schema.org/docs/full.html"
+        }
+      ],
+      "backlog": {
+        "title": "Fő entitás JSON-LD",
+        "category": "Strukturált adat",
+        "owner": "fejlesztő",
+        "implementation": "JSON-LD",
+        "change": "A fő entitás sémája csak látható, igazolható adatokkal (Offer, PostalAddress, GeoCoordinates), provider/organizer @id-vel.",
+        "benefit": "Gépileg egyértelmű fő entitás. Nem garantál rich resultot vagy AI-megjelenést.",
+        "priority": "magas",
+        "effort": "M",
+        "effortReason": "Adatmezők leképezése.",
+        "verification": "validator.schema.org; egyezés a látható tartalommal."
+      }
+    },
+    {
+      "id": "schema.name-consistency",
+      "version": 1,
+      "title": "Szervezetnév egységessége",
+      "topic": "schema",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "nameConsistency",
+      "module": "core",
+      "enabled": true,
+      "description": "A szervezet neve a title-ben, az og:site_name-ben, a JSON-LD-ben és a láblécben.",
+      "sources": [],
+      "backlog": {
+        "title": "Egységes szervezetnév",
+        "category": "Strukturált adat",
+        "owner": "ügyfél",
+        "implementation": "CMS / JSON-LD",
+        "change": "Egy hivatalos névforma mindenhol (title-suffix, og:site_name, JSON-LD, lábléc).",
+        "benefit": "Az entitás nem esik szét több névre.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Beállítások.",
+        "verification": "Négy helyen ugyanaz a név."
+      }
+    },
+    {
+      "id": "schema.breadcrumb",
+      "version": 1,
+      "title": "BreadcrumbList",
+      "topic": "schema",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "breadcrumb",
+      "module": "core",
+      "enabled": true,
+      "description": "BreadcrumbList séma és látható morzsamenü.",
+      "sources": [],
+      "backlog": {
+        "title": "BreadcrumbList",
+        "category": "Strukturált adat",
+        "owner": "fejlesztő",
+        "implementation": "JSON-LD / HTML",
+        "change": "Látható morzsamenü + BreadcrumbList.",
+        "benefit": "Hierarchia-kontextus.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Sablon.",
+        "verification": "validator.schema.org"
+      }
+    },
+    {
+      "id": "schema.webpage",
+      "version": 1,
+      "title": "WebPage és dateModified",
+      "topic": "schema",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "webpage",
+      "module": "core",
+      "enabled": true,
+      "description": "WebPage node (about/mainEntity, isPartOf, dateModified).",
+      "sources": [],
+      "backlog": {
+        "title": "WebPage node dateModified-dal",
+        "category": "Strukturált adat",
+        "owner": "fejlesztő",
+        "implementation": "JSON-LD",
+        "change": "WebPage @id, mainEntity → fő entitás, publisher → Organization, valós dateModified.",
+        "benefit": "Frissességi és kapcsolati jel.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Sablon.",
+        "verification": "validator.schema.org"
+      }
+    },
+    {
+      "id": "schema.faq",
+      "version": 1,
+      "title": "FAQPage csak valódi GYIK-kel",
+      "topic": "schema",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "faqValidity",
+      "module": "core",
+      "enabled": true,
+      "description": "Ha van FAQPage, a kérdések láthatóak-e az oldalon.",
+      "sources": [],
+      "backlog": {
+        "title": "FAQPage és látható GYIK összhangja",
+        "category": "Strukturált adat",
+        "owner": "fejlesztő",
+        "implementation": "JSON-LD",
+        "change": "Csak a látható kérdés–válasz párok kerüljenek a FAQPage-be.",
+        "benefit": "Nem félrevezető jelölés.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Sablon.",
+        "verification": "Minden FAQ-kérdés szövege megtalálható a HTML-ben."
+      }
+    },
+    {
+      "id": "schema.js-injected",
+      "version": 1,
+      "title": "JSON-LD csak JS-sel (pl. GTM)",
+      "topic": "schema",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "jsonldJsOnly",
+      "module": "core",
+      "enabled": true,
+      "description": "A JSON-LD benne van-e a nyers HTML-ben, vagy csak a renderelés után jelenik meg.",
+      "sources": [],
+      "backlog": {
+        "title": "JSON-LD szerveroldalon",
+        "category": "Strukturált adat",
+        "owner": "fejlesztő",
+        "implementation": "PHP / HTML",
+        "change": "A JSON-LD-t a sablon írja ki, ne Tag Manager.",
+        "benefit": "Minden robot látja, rendereléstől függetlenül.",
+        "priority": "magas",
+        "effort": "S",
+        "effortReason": "Áthelyezés.",
+        "verification": "curl URL | grep application/ld+json"
+      }
+    },
+    {
+      "id": "schema.sameas",
+      "version": 1,
+      "title": "sameAs és külső profilok",
+      "topic": "schema",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "sameAs",
+      "module": "ext-entity",
+      "enabled": true,
+      "description": "sameAs linkek (LinkedIn, Facebook, Wikidata, cégjegyzék, Bing Places).",
+      "sources": [],
+      "backlog": {
+        "title": "sameAs kiegészítése",
+        "category": "Strukturált adat",
+        "owner": "ügyfél",
+        "implementation": "JSON-LD",
+        "change": "Hivatalos profilok sameAs-ben (csak létező, a szervezet által kezelt profilok).",
+        "benefit": "Entitás-összekapcsolás.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Lista.",
+        "verification": "validator.schema.org"
+      }
+    },
+    {
+      "id": "schema.acp",
+      "version": 1,
+      "title": "OpenAI termékfeed (ChatGPT shopping / ACP)",
+      "topic": "schema",
+      "surfaces": [
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "manual",
+      "module": "core",
+      "enabled": true,
+      "description": "Csak akkor releváns, ha az oldal kategóriája a hivatalos feltételek szerint támogatott (termék, webshop).",
+      "howTo": "Nézd meg az OpenAI Commerce dokumentációt, hogy a kategória támogatott-e. Ha nem termék, jelöld 'Nem releváns'-nak.",
+      "sources": [
+        {
+          "title": "OpenAI Commerce",
+          "url": "https://developers.openai.com/commerce",
+          "official": true
+        }
+      ]
+    },
+    {
+      "id": "ai.fact-block",
+      "version": 1,
+      "title": "Idézhető tényblokk",
+      "topic": "ai",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "factBlock",
+      "module": "core",
+      "enabled": true,
+      "description": "Van-e egy bekezdésből vagy táblából kiemelhető, dátummal ellátott összefoglaló a kulcsadatokkal.",
+      "sources": [],
+      "backlog": {
+        "title": "Kulcsadat-összefoglaló „frissítve” dátummal",
+        "category": "AI-láthatóság",
+        "owner": "mindkettő",
+        "implementation": "HTML / CMS",
+        "change": "Az oldal elején egy rövid, tényszerű blokk (ki, mi, hol, mikor, mennyiért, milyen feltétellel) + „Frissítve: ÉÉÉÉ-HH-NN”.",
+        "benefit": "Egy helyről idézhető, pontos válasz.",
+        "priority": "magas",
+        "effort": "S",
+        "effortReason": "Komponens + szöveg.",
+        "verification": "Blokk a nyers HTML-ben."
+      }
+    },
+    {
+      "id": "ai.questions",
+      "version": 1,
+      "title": "Kérdés-lefedettség",
+      "topic": "ai",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 4,
+      "runner": "auto",
+      "impl": "questionCoverage",
+      "module": "core",
+      "enabled": true,
+      "description": "A kérdéslistában értékelt kérdések aránya, amelyekre az oldal egyértelmű, idézhető tényt ad.",
+      "sources": [],
+      "backlog": {
+        "title": "Hiányzó válaszok pótlása (GYIK / feltételek)",
+        "category": "Tartalom/IA",
+        "owner": "ügyfél",
+        "implementation": "CMS",
+        "change": "A „nem” és „részben” értékelésű kérdésekre tényszerű, dátummal ellátott válasz az oldalon.",
+        "benefit": "Több kérdésre lehet forrás az oldal.",
+        "priority": "magas",
+        "effort": "M",
+        "effortReason": "Tartalomírás, ügyfél-adat kell.",
+        "verification": "Kérdés-lefedettség újraértékelése."
+      }
+    },
+    {
+      "id": "ai.freshness",
+      "version": 1,
+      "title": "Frissesség",
+      "topic": "ai",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "freshness",
+      "module": "ext-freshness",
+      "enabled": true,
+      "description": "Látható frissítési dátum, dateModified és a sitemap lastmod összhangja.",
+      "sources": [],
+      "backlog": {
+        "title": "Egységes frissítési dátum",
+        "category": "AI-láthatóság",
+        "owner": "fejlesztő",
+        "implementation": "HTML / JSON-LD / CMS",
+        "change": "Ugyanaz a valós módosítási dátum: látható „Frissítve”, dateModified, sitemap lastmod.",
+        "benefit": "Aktualitási jel.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Sablon.",
+        "verification": "Három dátum egyezik."
+      }
+    },
+    {
+      "id": "ai.entity-trust",
+      "version": 1,
+      "title": "Ki áll mögötte? (impresszum, kapcsolat)",
+      "topic": "ai",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "entityTrust",
+      "module": "ext-entity",
+      "enabled": true,
+      "description": "Impresszum, kapcsolat, „rólunk” linkek, telefon, e-mail, postacím.",
+      "sources": [],
+      "backlog": {
+        "title": "Azonosítható üzemeltető",
+        "category": "Tartalom/IA",
+        "owner": "ügyfél",
+        "implementation": "CMS",
+        "change": "Impresszum, kapcsolat és rólunk oldal linkelve a láblécből, teljes cégadatokkal.",
+        "benefit": "Megválaszolható a „ki áll mögötte?” kérdés.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Tartalom.",
+        "verification": "Linkek a láblécben."
+      }
+    },
+    {
+      "id": "ai.comparison",
+      "version": 1,
+      "title": "Semleges összehasonlító tartalom",
+      "topic": "ai",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "manual",
+      "module": "core",
+      "enabled": true,
+      "description": "Van-e tényalapú összevetés a szervezet saját ajánlatai között (versenytársakról nem).",
+      "howTo": "Nézd meg, van-e összehasonlító táblázat a saját termékek/csomagok/lakástípusok között.",
+      "sources": [],
+      "backlog": {
+        "title": "Saját ajánlatok összehasonlító táblája",
+        "category": "Tartalom/IA",
+        "owner": "ügyfél",
+        "implementation": "HTML / CMS",
+        "change": "Tényalapú tábla a saját ajánlatokról (ár, méret, feltétel).",
+        "benefit": "Válasz az összehasonlító ChatGPT-kérdésekre.",
+        "priority": "közepes",
+        "effort": "M",
+        "effortReason": "Adatgyűjtés.",
+        "verification": "Tábla a nyers HTML-ben."
+      }
+    },
+    {
+      "id": "ai.llms-txt",
+      "version": 1,
+      "title": "llms.txt (kísérleti)",
+      "topic": "ai",
+      "surfaces": [
+        "other"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "llmsTxt",
+      "module": "ext-llmstxt",
+      "enabled": true,
+      "experimental": true,
+      "description": "Csak jelenlét. Egyik vizsgált szolgáltató sem dokumentálja, hogy használná; nem javasoljuk aktívan.",
+      "sources": [
+        {
+          "title": "llmstxt.org (javaslat, nem szabvány)",
+          "url": "https://llmstxt.org/",
+          "official": false
+        }
+      ]
+    },
+    {
+      "id": "tech.https",
+      "version": 1,
+      "title": "HTTPS",
+      "topic": "tech",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 4,
+      "runner": "auto",
+      "impl": "https",
+      "module": "core",
+      "enabled": true,
+      "description": "A végső URL HTTPS, és a http:// változat egy lépésben átirányít.",
+      "sources": [],
+      "backlog": {
+        "title": "HTTPS-átirányítás",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "szerver",
+        "change": "301 http → https, egy lépésben.",
+        "benefit": "Biztonság, egy kanonikus változat.",
+        "priority": "magas",
+        "effort": "S",
+        "effortReason": "Szerverbeállítás.",
+        "verification": "curl -sI http://domain"
+      }
+    },
+    {
+      "id": "tech.viewport",
+      "version": 1,
+      "title": "Mobil (viewport)",
+      "topic": "tech",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "viewport",
+      "module": "core",
+      "enabled": true,
+      "description": "Viewport meta.",
+      "sources": [],
+      "backlog": {
+        "title": "Viewport meta",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "HTML",
+        "change": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
+        "benefit": "Mobilbarát megjelenés.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Egy sor.",
+        "verification": "Nyers HTML."
+      }
+    },
+    {
+      "id": "tech.lang",
+      "version": 1,
+      "title": "Nyelvjelölés (lang)",
+      "topic": "tech",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "lang",
+      "module": "core",
+      "enabled": true,
+      "description": "Az <html lang> egyezik-e a megadott nyelvvel.",
+      "sources": [],
+      "backlog": {
+        "title": "Helyes lang attribútum",
+        "category": "SEO/indexelés",
+        "owner": "fejlesztő",
+        "implementation": "HTML",
+        "change": "<html lang=\"hu\"> (illetve a változat nyelve).",
+        "benefit": "Helyes nyelvi besorolás.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Egy attribútum.",
+        "verification": "Nyers HTML."
+      }
+    },
+    {
+      "id": "tech.hreflang",
+      "version": 1,
+      "title": "hreflang",
+      "topic": "tech",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "hreflang",
+      "module": "core",
+      "enabled": true,
+      "description": "Több nyelvi változatnál kölcsönös hreflang.",
+      "sources": [
+        {
+          "title": "Bing Webmaster Guidelines",
+          "url": "https://www.bing.com/webmasters/help/webmaster-guidelines-30fba23a",
+          "official": true
+        }
+      ],
+      "backlog": {
+        "title": "hreflang a nyelvi változatokra",
+        "category": "SEO/indexelés",
+        "owner": "fejlesztő",
+        "implementation": "HTML / CMS",
+        "change": "Kölcsönös hreflang + x-default; Bingnél a content-language és a lang is számít.",
+        "benefit": "A megfelelő nyelvi változat jelenik meg.",
+        "priority": "közepes",
+        "effort": "S",
+        "effortReason": "Plugin/sablon.",
+        "verification": "Kölcsönös hivatkozások."
+      }
+    },
+    {
+      "id": "tech.og",
+      "version": 1,
+      "title": "Open Graph",
+      "topic": "tech",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "openGraph",
+      "module": "core",
+      "enabled": true,
+      "description": "og:title, og:description, og:image (elérhető-e), og:url, og:site_name. Az og:image a ChatGPT/Atlas linkelőnézeteinél is látszhat. Ez megfigyelés, nem rangsorolási tényező.",
+      "sources": [
+        {
+          "title": "The Open Graph protocol",
+          "url": "https://ogp.me/"
+        }
+      ],
+      "backlog": {
+        "title": "Open Graph kiegészítése",
+        "category": "SEO/indexelés",
+        "owner": "fejlesztő",
+        "implementation": "HTML / CMS",
+        "change": "Teljes OG-készlet, abszolút, elérhető og:image (1200×630).",
+        "benefit": "Jó linkelőnézet megosztáskor és AI-felületeken.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "SEO-plugin.",
+        "verification": "OG-debugger."
+      }
+    },
+    {
+      "id": "tech.cwv",
+      "version": 1,
+      "title": "Betöltés (laboratóriumi mérés)",
+      "topic": "tech",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "cwv",
+      "module": "core",
+      "enabled": true,
+      "description": "LCP, CLS és kérésszám egyetlen headless betöltésből. Pillanatfelvétel, nem terepi CWV-adat.",
+      "sources": [
+        {
+          "title": "web.dev – Core Web Vitals (Google, másodlagos)",
+          "url": "https://web.dev/articles/vitals",
+          "official": false
+        }
+      ],
+      "backlog": {
+        "title": "Betöltési teljesítmény javítása",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "HTML / CMS",
+        "change": "Képek méretezése, lazy-load, a harmadik féltől származó szkriptek késleltetése.",
+        "benefit": "Gyorsabb oldal felhasználónak és robotnak.",
+        "priority": "közepes",
+        "effort": "M",
+        "effortReason": "Több forrás optimalizálása.",
+        "verification": "PageSpeed Insights terepi adat."
+      }
+    },
+    {
+      "id": "tech.third-party",
+      "version": 1,
+      "title": "Harmadik féltől származó szkriptek",
+      "topic": "tech",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "auto",
+      "impl": "thirdParty",
+      "module": "core",
+      "enabled": true,
+      "description": "Külső domének és szkriptek száma; felesleges, minden oldalon betöltődő bővítmények.",
+      "sources": [],
+      "backlog": {
+        "title": "Felesleges szkriptek eltávolítása",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "CMS",
+        "change": "Csak ott töltődjenek be a bővítmények, ahol kellenek.",
+        "benefit": "Kisebb oldal, kevesebb hibaforrás.",
+        "priority": "alacsony",
+        "effort": "M",
+        "effortReason": "Pluginenkénti vizsgálat.",
+        "verification": "Kérésszám csökken."
+      }
+    },
+    {
+      "id": "tech.compression",
+      "version": 1,
+      "title": "Tömörítés és cache-fejlécek",
+      "topic": "tech",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 1,
+      "runner": "auto",
+      "impl": "compression",
+      "module": "ext-perf",
+      "enabled": true,
+      "description": "Content-Encoding (gzip/br) és Cache-Control a HTML-válaszon.",
+      "sources": [],
+      "backlog": {
+        "title": "Tömörítés bekapcsolása",
+        "category": "Hibajavítás",
+        "owner": "fejlesztő",
+        "implementation": "szerver",
+        "change": "gzip/brotli a HTML-re.",
+        "benefit": "Gyorsabb letöltés.",
+        "priority": "alacsony",
+        "effort": "S",
+        "effortReason": "Szerverbeállítás.",
+        "verification": "curl -sI --compressed URL"
+      }
+    },
+    {
+      "id": "test.chatgpt",
+      "version": 1,
+      "title": "ChatGPT kézi kérdésteszt",
+      "topic": "test",
+      "surfaces": [
+        "chatgpt"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "testChatgpt",
+      "module": "core",
+      "enabled": true,
+      "description": "A kérdéslistában rögzített ChatGPT-eredményekből (keresés bekapcsolva, tiszta munkamenet). Pillanatfelvétel, nem mérés. Ha az oldal nem jelenik meg, abból nem következik, hogy nincs indexelve.",
+      "sources": [],
+      "backlog": {
+        "title": "Elavult vagy hibás ChatGPT-idézet forrásának javítása",
+        "category": "AI-láthatóság",
+        "owner": "mindkettő",
+        "implementation": "CMS",
+        "change": "A hibás tény forrásának (régi PDF, harmadik fél, cache) javítása vagy eltávolítása.",
+        "benefit": "Pontosabb AI-válaszok.",
+        "priority": "magas",
+        "effort": "M",
+        "effortReason": "Forráskeresés.",
+        "verification": "Negyedéves kérdésteszt."
+      }
+    },
+    {
+      "id": "test.copilot",
+      "version": 1,
+      "title": "Copilot kézi kérdésteszt",
+      "topic": "test",
+      "surfaces": [
+        "bing"
+      ],
+      "weight": 3,
+      "runner": "auto",
+      "impl": "testCopilot",
+      "module": "core",
+      "enabled": true,
+      "description": "Ugyanazok a kérdések a Copilotban, a források összevetése.",
+      "sources": [],
+      "backlog": {
+        "title": "Elavult vagy hibás Copilot-idézet forrásának javítása",
+        "category": "AI-láthatóság",
+        "owner": "mindkettő",
+        "implementation": "CMS",
+        "change": "A hibás tény forrásának javítása, majd IndexNow-ping.",
+        "benefit": "Pontosabb Copilot-válaszok.",
+        "priority": "magas",
+        "effort": "M",
+        "effortReason": "Forráskeresés.",
+        "verification": "Negyedéves kérdésteszt; BWT AI Performance."
+      }
+    },
+    {
+      "id": "test.logs",
+      "version": 1,
+      "title": "Szervernapló: bot-kérések",
+      "topic": "test",
+      "surfaces": [
+        "bing",
+        "chatgpt"
+      ],
+      "weight": 2,
+      "runner": "manual",
+      "module": "ext-logs",
+      "enabled": true,
+      "description": "bingbot, OAI-SearchBot, GPTBot, ChatGPT-User kérései külön, IP-ellenőrzéssel (OpenAI JSON-listák, bingbot fordított DNS).",
+      "howTo": "Kérj 30 napos access logot. Szűrj UA-ra, és ellenőrizd az IP-ket az OpenAI JSON-listái alapján, illetve a bingbotot fordított DNS-sel. (A 3. fázisban a log feltölthető lesz.)",
+      "sources": [
+        {
+          "title": "OpenAI – Overview of OpenAI crawlers",
+          "url": "https://developers.openai.com/docs/bots",
+          "checked": "2026-10-14",
+          "official": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "_comment": "Kérdéssablonok. A {szögletes} helyőrzőket az audit bemenetéből vagy kézzel kell kitölteni. Új sablon szabadon felvehető.",
+  "templates": [
+    { "id": "s-price-location", "kind": "search", "text": "[szolgáltatás/termék] [helyszín] [ár] alatt", "hint": "Ár + helyszín szűrés" },
+    { "id": "s-what-is", "kind": "search", "text": "Mi az a [entitás]?", "hint": "Definíció, összefoglaló" },
+    { "id": "s-price", "kind": "search", "text": "Mennyibe kerül [entitás]?" },
+    { "id": "s-where", "kind": "search", "text": "Hol található [entitás]?" },
+    { "id": "s-when", "kind": "search", "text": "Mikor érhető el / mikor kezdődik [entitás]?" },
+    { "id": "s-availability", "kind": "search", "text": "Elérhető még [entitás]? Hány szabad hely / darab van?" },
+    { "id": "s-conditions", "kind": "search", "text": "Milyen feltételekkel vehető igénybe [entitás]?" },
+    { "id": "s-contact", "kind": "search", "text": "Hogyan lehet kapcsolatba lépni [szervezet]-tel?" },
+    { "id": "s-best", "kind": "search", "text": "legjobb [kategória] [helyszín] [év]" },
+    { "id": "s-size", "kind": "search", "text": "[entitás] méretek / kapacitás" },
+    { "id": "c-criteria", "kind": "conversational", "text": "Melyik [kategória] felel meg ezeknek a feltételeknek: [feltétel 1], [feltétel 2], [ár/időpont]?" },
+    { "id": "c-compare", "kind": "conversational", "text": "Hasonlítsd össze [A]-t és [B]-t [szempont 1], [szempont 2] szerint." },
+    { "id": "c-eligible", "kind": "conversational", "text": "Jogosult vagyok-e [kedvezmény/feltétel] igénybevételére [entitás] esetén?" },
+    { "id": "c-who", "kind": "conversational", "text": "Ki áll [entitás] mögött, és mik a korábbi referenciái?" },
+    { "id": "c-cost", "kind": "conversational", "text": "Mennyi a teljes költsége / mik a rejtett költségei [entitás]-nak?" }
+  ]
+}

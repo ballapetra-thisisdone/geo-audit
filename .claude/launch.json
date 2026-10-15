@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "geo-audit",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["scripts/dev.mjs"],
+      "port": 5173
+    },
+    {
+      "name": "geo-audit-site",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["scripts/dev.mjs"],
+      "port": 5183,
+      "autoPort": true,
+      "env": { "GEO_API_PORT": "4327" }
+    }
+  ]
+}

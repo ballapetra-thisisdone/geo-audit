@@ -1,0 +1,7 @@
+node_modules/
+dist/
+skill/
+geo-audit-reports/
+data/
+.env
+*.log
